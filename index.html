@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>學期成績試算</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme:only light;
+    --paper:#FBF9F3;
+    --ink:#1f2a3c;
+    --ink-soft:#5b6675;
+    --line:#e3ddcf;
+    --line-strong:#cbc3b0;
+    --indigo:#3b4ea8;
+    --indigo-soft:#eef0fb;
+    --pass:#2f8f5b;
+    --pass-soft:#e7f3ec;
+    --makeup:#d98324;
+    --makeup-soft:#fbf0e2;
+    --fail:#c0463b;
+    --fail-soft:#f8eae8;
+    --shadow:0 2px 0 var(--line-strong);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  html{background:var(--paper)}
+  body{
+    font-family:"Noto Sans TC","Space Grotesk",system-ui,sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    line-height:1.5;
+    min-height:100vh;
+    padding:20px 16px 60px;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px);
+    background-size:100% 28px;
+  }
+  .wrap{max-width:560px;margin:0 auto}
+
+  /* header */
+  header{margin-bottom:22px}
+  .eyebrow{
+    font-family:"Space Grotesk",monospace;
+    font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--indigo);font-weight:600;
+  }
+  h1{
+    font-weight:900;font-size:1.85rem;line-height:1.15;
+    margin:4px 0 6px;letter-spacing:-.01em;
+  }
+  .sub{color:var(--ink-soft);font-size:.92rem}
+
+  /* tabs */
+  .tabs{
+    display:flex;gap:6px;background:#fff;border:1.5px solid var(--ink);
+    border-radius:14px;padding:5px;margin:18px 0 16px;
+    box-shadow:var(--shadow);
+  }
+  .tab{
+    flex:1;border:none;background:transparent;cursor:pointer;
+    font-family:inherit;font-weight:700;font-size:.92rem;color:var(--ink-soft);
+    padding:11px 8px;border-radius:9px;transition:.18s;
+  }
+  .tab .n{font-family:"Space Grotesk";font-size:.78rem;display:block;opacity:.6}
+  .tab.active{background:var(--ink);color:var(--paper)}
+  .tab.active .n{opacity:.55;color:var(--paper)}
+
+  .panel{display:none}
+  .panel.active{display:block;animation:rise .28s ease}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* score group cards */
+  .card{
+    background:#fff;border:1.5px solid var(--ink);border-radius:16px;
+    padding:16px 16px 18px;margin-bottom:14px;box-shadow:var(--shadow);
+  }
+  .card-head{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .card-title{font-weight:900;font-size:1.05rem}
+  .card-note{font-size:.78rem;color:var(--ink-soft)}
+
+  .row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .field label{
+    display:block;font-size:.8rem;font-weight:500;color:var(--ink-soft);
+    margin-bottom:5px;
+  }
+  .field label b{color:var(--indigo);font-family:"Space Grotesk";font-weight:600;font-size:.72rem}
+  .field input{
+    width:100%;font-family:"Space Grotesk",monospace;font-size:1.15rem;
+    font-weight:600;text-align:center;color:var(--ink);
+    border:1.5px solid var(--line-strong);border-radius:10px;
+    padding:11px 4px;background:var(--paper);
+    -moz-appearance:textfield;
+  }
+  .field input::-webkit-outer-spin-button,
+  .field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .field input:focus{outline:none;border-color:var(--indigo);background:#fff;
+    box-shadow:0 0 0 3px var(--indigo-soft)}
+  .field input.locked{background:var(--indigo-soft);border-style:dashed;border-color:var(--indigo);color:var(--indigo)}
+  .field input.exam-unknown{background:#f2efe6;color:#a59f8f;border-style:dashed}
+
+  /* mode 1 result */
+  .result{
+    background:var(--ink);color:var(--paper);border-radius:16px;
+    padding:20px;margin-top:4px;border:1.5px solid var(--ink);
+  }
+  .result .lab{font-size:.85rem;opacity:.7;font-weight:500}
+  .big{
+    font-family:"Space Grotesk";font-weight:700;font-size:4.2rem;
+    line-height:1;letter-spacing:-.02em;margin:6px 0 2px;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .big .unit{font-size:1.1rem;opacity:.6;font-weight:500}
+  .verdict{
+    display:inline-block;font-size:.85rem;font-weight:700;
+    padding:4px 12px;border-radius:20px;margin-top:8px;
+  }
+  .v-pass{background:var(--pass);color:#fff}
+  .v-makeup{background:var(--makeup);color:#fff}
+  .v-fail{background:var(--fail);color:#fff}
+  .v-wait{background:rgba(255,255,255,.18);color:var(--paper)}
+
+  /* composition axis */
+  .compose-head{margin-top:18px;font-size:.82rem;font-weight:700;opacity:.95;
+    display:flex;justify-content:space-between;align-items:baseline}
+  .compose-head span{font-weight:400;opacity:.55;font-size:.74rem}
+  .stackwrap{position:relative;margin-top:26px;padding-bottom:4px}
+  .stack{display:flex;height:30px;border-radius:8px;overflow:hidden;
+    background:rgba(255,255,255,.13)}
+  .seg{height:100%;transition:width .45s cubic-bezier(.4,0,.2,1);min-width:0}
+  .tick{position:absolute;top:-22px;bottom:0;width:0;
+    border-left:2px dashed rgba(255,255,255,.65);pointer-events:none}
+  .tick em{position:absolute;top:-2px;left:5px;font-style:normal;
+    font-size:.66rem;font-weight:700;white-space:nowrap;
+    font-family:"Space Grotesk","Noto Sans TC"}
+  .tick.t40 em{color:var(--makeup)}
+  .tick.t60 em{color:#8ce0aa}
+  .legend{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:7px 14px}
+  .lg{display:flex;align-items:center;gap:7px;font-size:.8rem}
+  .lg .dot{width:11px;height:11px;border-radius:3px;flex:none}
+  .lg .nm{opacity:.85}
+  .lg .pt{margin-left:auto;font-family:"Space Grotesk";font-weight:600;opacity:.92}
+
+  /* mode 2 thresholds */
+  .targets{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+  .target{
+    border:1.5px solid var(--ink);border-radius:16px;overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .t-head{
+    padding:13px 16px;display:flex;align-items:center;justify-content:space-between;
+    color:#fff;font-weight:700;
+  }
+  .t-pass .t-head{background:var(--pass)}
+  .t-makeup .t-head{background:var(--makeup)}
+  .t-head .goal{font-size:.85rem;opacity:.9;font-weight:500}
+  .t-body{padding:16px;background:#fff}
+  .need{
+    font-family:"Space Grotesk";font-weight:700;font-size:2.6rem;line-height:1;
+    display:flex;align-items:baseline;gap:7px;
+  }
+  .need .unit{font-size:.95rem;color:var(--ink-soft);font-weight:500}
+  .t-pass .need{color:var(--pass)}
+  .t-makeup .need{color:var(--makeup)}
+  .need-msg{margin-top:6px;font-size:.85rem;color:var(--ink-soft);line-height:1.45}
+  .need.guaranteed{font-size:1.15rem;font-weight:700;color:var(--pass)}
+  .need.impossible{color:var(--fail)}
+  .t-pass .need.impossible,.t-makeup .need.impossible{color:var(--fail)}
+
+  .locked-box{
+    background:var(--indigo-soft);border:1.5px dashed var(--indigo);
+    border-radius:14px;padding:13px 16px;margin-bottom:14px;font-size:.85rem;
+    color:var(--ink);
+  }
+  .locked-box b{color:var(--indigo);font-family:"Space Grotesk"}
+  .locked-box .lr{display:flex;justify-content:space-between;margin-top:5px}
+
+  /* custom target */
+  .whatif .card-note{font-size:.8rem;color:var(--ink-soft)}
+  .wf-q{font-size:.95rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    margin-bottom:6px;font-weight:500}
+  .wf-q input{width:88px;font-family:"Space Grotesk";font-weight:600;font-size:1.15rem;
+    text-align:center;color:var(--indigo);border:1.5px solid var(--indigo);
+    border-radius:10px;padding:8px;background:var(--indigo-soft);-moz-appearance:textfield}
+  .wf-q input::-webkit-outer-spin-button,.wf-q input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .wf-q input:focus{outline:none;box-shadow:0 0 0 3px var(--indigo-soft);background:#fff}
+  .wf-q input:disabled{opacity:.5;border-color:var(--line-strong);color:var(--ink-soft);background:var(--paper)}
+  .wf-out{border-top:1.5px solid var(--line);padding-top:14px;margin-top:10px}
+
+  footer{margin-top:26px;font-size:.78rem;color:var(--ink-soft);text-align:center;line-height:1.6}
+  .formula{font-family:"Space Grotesk",monospace;font-size:.72rem;background:#fff;
+    border:1px solid var(--line-strong);border-radius:8px;padding:8px 10px;
+    margin-top:8px;display:inline-block;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">學期成績 &middot; 試算工具</div>
+    <h1>你這學期能拿幾分？</h1>
+    <p class="sub">段考三次（20%、20%、30%）＋ 平時三次（各 10%），加起來就是學期成績。</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="1">
+      <span class="n">模式一</span>算我的學期成績
+    </button>
+    <button class="tab" data-mode="2">
+      <span class="n">模式二</span>期末要拚幾分
+    </button>
+  </div>
+
+  <!-- ===== MODE 1 ===== -->
+  <section class="panel active" id="panel1">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">段考成績</span>
+        <span class="card-note">合計 70%</span>
+      </div>
+      <div class="row">
+        <div class="field"><label>第一次 <b>20%</b></label><input type="number" id="m1_b" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>第二次 <b>20%</b></label><input type="number" id="m1_c" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>期末 <b>30%</b></label><input type="number" id="m1_d" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">平時成績</span>
+        <span class="card-note">合計 30%</span>
+      </div>
+      <div class="row">
+        <div class="field"><label>第一次 <b>10%</b></label><input type="number" id="m1_e" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>第二次 <b>10%</b></label><input type="number" id="m1_f" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>期末 <b>10%</b></label><input type="number" id="m1_g" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+      </div>
+    </div>
+
+    <div class="result">
+      <div class="lab">學期成績</div>
+      <div class="big"><span id="m1_score">0.0</span><span class="unit">分</span></div>
+      <span class="verdict v-fail" id="m1_verdict">尚未填寫</span>
+      <div class="compose-head">分數組成 <span>滿 100 分，右側空白＝還沒拿到的分</span></div>
+      <div class="stackwrap">
+        <div class="stack" id="m1_stack"></div>
+        <span class="tick t40" style="left:40%"><em>40 可補考</em></span>
+        <span class="tick t60" style="left:60%"><em>60 及格</em></span>
+      </div>
+      <div class="legend" id="m1_legend"></div>
+    </div>
+  </section>
+
+  <!-- ===== MODE 2 ===== -->
+  <section class="panel" id="panel2">
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">已知成績</span>
+        <span class="card-note">填前兩次</span>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <div class="field"><label>段考第一次 <b>20%</b></label><input type="number" id="m2_b" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>段考第二次 <b>20%</b></label><input type="number" id="m2_c" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>段考期末 <b>30%</b></label><input type="number" class="exam-unknown" value="?" disabled></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>平時第一次 <b>10%</b></label><input type="number" id="m2_e" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>平時第二次 <b>10%</b></label><input type="number" id="m2_f" min="0" max="100" inputmode="decimal" placeholder="—"></div>
+        <div class="field"><label>平時期末 <b>10%</b>（估計）</label><input type="number" id="m2_g" class="locked" disabled placeholder="估計"></div>
+      </div>
+    </div>
+
+    <div class="locked-box" id="m2_locked">
+      平時期末以前兩次平時成績的平均<b>估計</b>：<b id="m2_avg">—</b>
+      <div class="lr"><span>目前已鎖定的分數（不含期末段考）</span><b id="m2_base">— 分</b></div>
+    </div>
+
+    <div class="targets">
+      <div class="target t-pass">
+        <div class="t-head"><span>達到及格</span><span class="goal">學期 60 分</span></div>
+        <div class="t-body">
+          <div class="need" id="m2_pass_need">— <span class="unit">分</span></div>
+          <div class="need-msg" id="m2_pass_msg">填入上面四格後計算</div>
+        </div>
+      </div>
+      <div class="target t-makeup">
+        <div class="t-head"><span>不及格但可補考</span><span class="goal">學期 40 分</span></div>
+        <div class="t-body">
+          <div class="need" id="m2_makeup_need">— <span class="unit">分</span></div>
+          <div class="need-msg" id="m2_makeup_msg">期末段考至少要考的分數</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card whatif" style="margin-top:14px">
+      <div class="card-head">
+        <span class="card-title">自訂目標</span>
+        <span class="card-note">想衝幾分就填幾分</span>
+      </div>
+      <div class="wf-q">我想讓學期成績達到
+        <input type="number" id="wf_target" min="0" max="100" inputmode="decimal" value="80"> 分
+      </div>
+      <div class="wf-out">
+        <div class="need" id="wf_need">— <span class="unit">分</span></div>
+        <div class="need-msg" id="wf_need_msg">填好上面四格後就能算</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    計分公式
+    <div class="formula">段一×20% ＋ 段二×20% ＋ 段末×30% ＋ 平一×10% ＋ 平二×10% ＋ 平末×10%</div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  const W = {b:.2, c:.2, d:.3, e:.1, f:.1, g:.1};
+  const $ = id => document.getElementById(id);
+  const num = el => {
+    let v = parseFloat(el.value);
+    if(isNaN(v)) return null;
+    return Math.max(0, Math.min(100, v));
+  };
+
+  /* tabs */
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      $('panel'+t.dataset.mode).classList.add('active');
+    });
+  });
+
+  /* shared verdict (full 6 scores known) */
+  function verdictOf(total){
+    if(total>=60) return {cls:'v-pass', text:'及格'};
+    if(total>=40) return {cls:'v-makeup', text:'不及格 ・ 可補考'};
+    return {cls:'v-fail', text:'不及格 ・ 不能補考'};
+  }
+
+  /* clamp inputs to 0–100 on blur so display matches the maths */
+  function attachClamp(ids){
+    ids.forEach(id=>{
+      const el = $(id);
+      el.addEventListener('blur',()=>{
+        if(el.value==='') return;
+        let v = parseFloat(el.value);
+        if(isNaN(v)){ el.value=''; return; }
+        v = Math.max(0, Math.min(100, v));
+        el.value = Number.isInteger(v) ? v : parseFloat(v.toFixed(1));
+      });
+    });
+  }
+
+  /* ---------- MODE 1 ---------- */
+  const m1ids = ['m1_b','m1_c','m1_d','m1_e','m1_f','m1_g'];
+  const m1labels = {m1_b:'段考一',m1_c:'段考二',m1_d:'段考末',m1_e:'平時一',m1_f:'平時二',m1_g:'平時末'};
+  const m1w = {m1_b:.2,m1_c:.2,m1_d:.3,m1_e:.1,m1_f:.1,m1_g:.1};
+
+  function calcM1(){
+    let total = 0, filled = 0, parts = [];
+    m1ids.forEach(id=>{
+      const v = num($(id));
+      const contrib = v===null ? 0 : v*m1w[id];
+      if(v!==null) filled++;
+      total += contrib;
+      parts.push({id, label:m1labels[id], v, contrib, max:m1w[id]*100});
+    });
+    $('m1_score').textContent = total.toFixed(1);
+
+    const vd = $('m1_verdict');
+    if(filled < 6){
+      vd.className='verdict v-wait';
+      vd.textContent = filled===0 ? '尚未填寫' : `尚未填完（${filled}/6）`;
+    } else {
+      const v = verdictOf(total);
+      vd.className = 'verdict ' + v.cls;
+      vd.textContent = v.text;
+    }
+
+    const segColors = {m1_b:'#74c0fc',m1_c:'#4dabf7',m1_d:'#4263eb',
+                       m1_e:'#ffe066',m1_f:'#ffc078',m1_g:'#ffa94d'};
+    $('m1_stack').innerHTML = parts.map(p=>
+      `<span class="seg" style="width:${p.v===null?0:p.contrib}%;background:${segColors[p.id]}"></span>`
+    ).join('');
+    $('m1_legend').innerHTML = parts.map(p=>
+      `<span class="lg"><span class="dot" style="background:${segColors[p.id]}"></span>
+        <span class="nm">${p.label}</span>
+        <span class="pt">${p.v===null?'—':'+'+p.contrib.toFixed(1)}</span></span>`
+    ).join('');
+  }
+  m1ids.forEach(id=>$(id).addEventListener('input',calcM1));
+  attachClamp(m1ids);
+
+  /* ---------- MODE 2 ---------- */
+  const m2ids = ['m2_b','m2_c','m2_e','m2_f'];
+
+  function needText(target, base){
+    // 期末段考 weight = 0.3
+    const need = (target - base) / W.d;
+    if(need <= 1e-9){
+      return {cls:'guaranteed', html:'已穩了！', msg:'即使期末段考考 0 分也已達標。'};
+    }
+    const ceil = Math.ceil(need - 1e-9);   // 容差吃掉浮點假尾巴
+    return {cls:'', html:`${ceil} <span class="unit">分</span>`,
+            msg:`期末段考至少要考 <b>${ceil}</b> 分（精確值 ${need.toFixed(1)}）。`};
+  }
+
+  let m2base = null;  // 已鎖定分數（不含期末段考），供自訂目標使用
+
+  function renderCustom(){
+    const tEl = $('wf_target');
+    const needEl = $('wf_need'), msgEl = $('wf_need_msg');
+    const colorMap = {'':'var(--indigo)','guaranteed':'var(--pass)','impossible':'var(--fail)'};
+
+    if(m2base === null){
+      tEl.disabled = true;
+      needEl.className = 'need';
+      needEl.style.color = 'var(--ink-soft)';
+      needEl.innerHTML = '— <span class="unit">分</span>';
+      msgEl.textContent = '填好上面四格後就能算';
+      return;
+    }
+    tEl.disabled = false;
+    let t = parseFloat(tEl.value);
+    if(isNaN(t)){
+      needEl.className = 'need';
+      needEl.style.color = 'var(--ink-soft)';
+      needEl.innerHTML = '— <span class="unit">分</span>';
+      msgEl.textContent = '輸入想達到的學期成績';
+      return;
+    }
+    const r = needText(t, m2base);
+    needEl.className = 'need ' + r.cls;
+    needEl.style.color = colorMap[r.cls];
+    needEl.innerHTML = r.html;
+    msgEl.innerHTML = `想讓學期成績達到 ${t} 分，${r.msg}`;
+  }
+
+  function calcM2(){
+    const b=num($('m2_b')), c=num($('m2_c')), e=num($('m2_e')), f=num($('m2_f'));
+    const ready = [b,c,e,f].every(x=>x!==null);
+
+    if(!ready){
+      $('m2_g').value='';
+      $('m2_avg').textContent='—';
+      $('m2_base').textContent='— 分';
+      ['pass','makeup'].forEach(k=>{
+        $('m2_'+k+'_need').innerHTML='— <span class="unit">分</span>';
+        $('m2_'+k+'_need').className='need';
+      });
+      $('m2_pass_msg').textContent='填入上面四格後計算';
+      $('m2_makeup_msg').textContent='期末段考至少要考的分數';
+      m2base = null;
+      renderCustom();
+      return;
+    }
+
+    const g = (e + f) / 2;                 // 平時期末 = 前兩次平均（估計）
+    $('m2_g').value = g.toFixed(1);
+    $('m2_avg').textContent = g.toFixed(1) + ' 分';
+
+    const base = b*W.b + c*W.c + e*W.e + f*W.f + g*W.g;  // 不含期末段考
+    $('m2_base').textContent = base.toFixed(1) + ' 分';
+
+    const pass = needText(60, base);
+    const makeup = needText(40, base);
+
+    $('m2_pass_need').className = 'need ' + pass.cls;
+    $('m2_pass_need').innerHTML = pass.html;
+    $('m2_pass_msg').innerHTML = pass.msg;
+
+    $('m2_makeup_need').className = 'need ' + makeup.cls;
+    $('m2_makeup_need').innerHTML = makeup.html;
+    $('m2_makeup_msg').innerHTML = makeup.msg;
+
+    m2base = base;
+    renderCustom();
+  }
+  m2ids.forEach(id=>$(id).addEventListener('input',calcM2));
+  attachClamp(m2ids);
+  attachClamp(['wf_target']);
+  $('wf_target').addEventListener('input', renderCustom);
+
+  calcM1(); calcM2();
+})();
+</script>
+</body>
+</html>
