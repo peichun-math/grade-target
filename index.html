@@ -271,12 +271,12 @@
       <div class="row">
         <div class="field"><label>平時第一次 <b>10%</b></label><input type="number" id="m2_e" min="0" max="100" inputmode="decimal" placeholder="—"></div>
         <div class="field"><label>平時第二次 <b>10%</b></label><input type="number" id="m2_f" min="0" max="100" inputmode="decimal" placeholder="—"></div>
-        <div class="field"><label>平時期末 <b>10%</b>（估計）</label><input type="number" id="m2_g" class="locked" disabled placeholder="估計"></div>
+        <div class="field"><label>平時期末 <b>10%</b></label><input type="number" id="m2_g" class="locked" min="0" max="100" inputmode="decimal" placeholder="估計"></div>
       </div>
     </div>
 
     <div class="locked-box" id="m2_locked">
-      平時期末以前兩次平時成績的平均<b>估計</b>：<b id="m2_avg">—</b>
+      <span id="m2_gline">平時期末留空就用前兩次平均估計，知道實際分數也可以直接填</span>
       <div class="lr"><span>目前已鎖定的分數（不含期末段考）</span><b id="m2_base">— 分</b></div>
     </div>
 
@@ -448,9 +448,16 @@
     const b=num($('m2_b')), c=num($('m2_c')), e=num($('m2_e')), f=num($('m2_f'));
     const ready = [b,c,e,f].every(x=>x!==null);
 
+    // 平時期末：留空 → 前兩次平均估計；有填 → 用實際分數
+    const gInput = $('m2_g');
+    const avg = (e!==null && f!==null) ? (e+f)/2 : null;
+    gInput.placeholder = avg!==null ? avg.toFixed(1) : '估計';
+    const gTyped = num(gInput);
+    const useG = gTyped!==null ? gTyped : avg;
+    const isEstimate = gTyped===null;
+
     if(!ready){
-      $('m2_g').value='';
-      $('m2_avg').textContent='—';
+      $('m2_gline').textContent = '平時期末留空就用前兩次平均估計，知道實際分數也可以直接填';
       $('m2_base').textContent='— 分';
       ['pass','makeup'].forEach(k=>{
         $('m2_'+k+'_need').innerHTML='— <span class="unit">分</span>';
@@ -463,11 +470,13 @@
       return;
     }
 
-    const g = (e + f) / 2;                 // 平時期末 = 前兩次平均（估計）
-    $('m2_g').value = g.toFixed(1);
-    $('m2_avg').textContent = g.toFixed(1) + ' 分';
+    if(isEstimate){
+      $('m2_gline').innerHTML = `平時期末未填，以前兩次平均<b>估計</b>為 <b>${avg.toFixed(1)}</b> 分`;
+    } else {
+      $('m2_gline').innerHTML = `平時期末採用你填的<b>實際</b>分數 <b>${useG.toFixed(1)}</b> 分`;
+    }
 
-    const base = b*W.b + c*W.c + e*W.e + f*W.f + g*W.g;  // 不含期末段考
+    const base = b*W.b + c*W.c + e*W.e + f*W.f + useG*W.g;  // 不含期末段考
     $('m2_base').textContent = base.toFixed(1) + ' 分';
 
     const pass = needText(60, base);
@@ -485,8 +494,9 @@
     renderCustom();
   }
   m2ids.forEach(id=>$(id).addEventListener('input',calcM2));
+  $('m2_g').addEventListener('input',calcM2);
   attachClamp(m2ids);
-  attachClamp(['wf_target']);
+  attachClamp(['m2_g','wf_target']);
   $('wf_target').addEventListener('input', renderCustom);
 
   calcM1(); calcM2();
