@@ -345,6 +345,13 @@
     return {cls:'v-fail', text:'不及格 ・ 不能補考'};
   }
 
+  /* 顯示分數：無條件捨去（不四捨五入抬過門檻），去掉尾數的 0 */
+  function fmtScore(s){
+    const r = Math.floor(s*100)/100;
+    if(Number.isInteger(r)) return r.toString();
+    return r.toFixed(2).replace(/0+$/,'').replace(/\.$/,'');
+  }
+
   /* clamp inputs to 0–100 on blur so display matches the maths */
   function attachClamp(ids){
     ids.forEach(id=>{
@@ -373,14 +380,15 @@
       total += contrib;
       parts.push({id, label:m1labels[id], v, contrib, max:m1w[id]*100});
     });
-    $('m1_score').textContent = total.toFixed(1);
+    const s = Math.round(total*1e6)/1e6;   // 去掉浮點雜訊後的真實分數
+    $('m1_score').textContent = fmtScore(s);
 
     const vd = $('m1_verdict');
     if(filled < 6){
       vd.className='verdict v-wait';
       vd.textContent = filled===0 ? '尚未填寫' : `尚未填完（${filled}/6）`;
     } else {
-      const v = verdictOf(total);
+      const v = verdictOf(s);
       vd.className = 'verdict ' + v.cls;
       vd.textContent = v.text;
     }
